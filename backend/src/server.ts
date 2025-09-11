@@ -4,6 +4,8 @@ import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import { connectDB } from './config/db';
 import authRouter from './routes/auth.routes';
+import userRouter from './routes/user.routes';
+import postRouter from './routes/post.routes';
 
 dotnev.config();
 
@@ -33,6 +35,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
+app.use('/api/posts', postRouter);
 
 app.get('/', (_, res) => res.send("Server Working..."));
 
