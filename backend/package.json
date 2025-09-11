@@ -12,16 +12,18 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@types/multer": "^2.0.0",
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "google-auth-library": "^10.3.0",
+    "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.1",
     "multer": "^2.0.2",
+    "streamifier": "^0.1.1",
     "zod": "^4.1.5"
   },
   "devDependencies": {
@@ -31,7 +33,9 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.3.1",
+    "@types/streamifier": "^0.1.2",
     "eslint": "^9.35.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
