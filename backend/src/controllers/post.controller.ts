@@ -10,11 +10,11 @@ class PostController {
     try {
       const authorId = req.user?.id;
       const parsedBody = postSchema.parse(req.body);
-      const { image } = req.body;
+      const mediaBuffer = req.file?.buffer;
 
       if (!authorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-      const post = await PostService.createPost(authorId, parsedBody.content, image);
+      const post = await PostService.createPost(authorId, parsedBody.content, mediaBuffer);
 
       res.status(201).json({ success: true, data: post });
     } catch (err: any) {

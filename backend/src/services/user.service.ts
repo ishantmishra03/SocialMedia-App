@@ -1,14 +1,28 @@
 import UserModel, { IUser } from '../models/User';
 import { Types } from 'mongoose';
+import redisClient from '../utils/redisClient';
 
 class UserService {
     // Get user profile by ID or username
     async getUserProfile(identifier: string): Promise<IUser | null> {
+        const cacheKey = `userProfile:${identifier}`;
+
+        //Try redis cache first
+        const cached = await redisClient.get(cacheKey);
+        if(cached){
+            return JSON.parse(cached);
+        }
+
+        // NOT in cache then fetch from DB
         const isObjectId = Types.ObjectId.isValid(identifier);
 
         const user = isObjectId
             ? await UserModel.findById(identifier).select('-password -email -authProvider').lean()
             : await UserModel.findOne({ username: identifier }).select('-password -email -authProvider').lean();
+
+        if(user){
+            await redisClient.set(cacheKey, JSON.stringify(user), 'EX', 600);
+        }
 
         return user;
     }
@@ -47,6 +61,10 @@ class UserService {
 
         await user.save();
         await targetUser.save();
+
+        // Invalidate cache as user changes
+        await redisClient.del(`userProfile:${userId}`);
+        await redisClient.del(`userProfile:${targetUserId}`);
     }
 
     // Unfollow user
@@ -63,6 +81,10 @@ class UserService {
 
         await user.save();
         await targetUser.save();
+
+        // Invalidate cache as user changes
+        await redisClient.del(`userProfile:${userId}`);
+        await redisClient.del(`userProfile:${targetUserId}`);
     }
 }
 

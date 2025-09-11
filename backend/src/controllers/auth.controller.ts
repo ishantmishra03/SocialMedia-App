@@ -16,7 +16,9 @@ class AuthController {
         try {
             const parsedData = registerSchema.parse(req.body);
 
-            await AuthService.register(parsedData.username, parsedData.email, parsedData.password);
+            const avatarBuffer = req.file?.buffer;
+
+            await AuthService.register(parsedData.username, parsedData.email, parsedData.password, avatarBuffer);
             res.status(201).json({ success: true, message: "Registered successfully" });
         } catch (err: any) {
             if (err instanceof ZodError) {

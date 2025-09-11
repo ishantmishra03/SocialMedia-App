@@ -2,15 +2,46 @@ import UserModel, { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config';
+import cloudinary from '../utils/cloudinary';
+import streamifier from 'streamifier'
 
 class AuthService {
     //Register
-    async register(username: string, email: string, password: string) {
-        const existing = await UserModel.findOne({ $or: [{ email }, { password }] });
+    async register(
+        username: string,
+        email: string,
+        password: string,
+        avatarBuffer?: Buffer 
+    ) {
+        const existing = await UserModel.findOne({ $or: [{ email }, { username }] });
         if (existing) throw new Error('Email or username already in use');
 
         const hashed = await bcrypt.hash(password, 10);
-        const user = await UserModel.create({ username, email, password: hashed, authProvider: 'local', });
+
+        let avatarUrl;
+        if (avatarBuffer) {
+            avatarUrl = await new Promise<string>((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'avatars',
+                        transformation: [{ width: 150, height: 150, crop: 'thumb', gravity: 'face' }],
+                    },
+                    (error, result) => {
+                        if (error) return reject(error);
+                        resolve(result?.secure_url!);
+                    }
+                );
+                streamifier.createReadStream(avatarBuffer).pipe(uploadStream);
+            });
+        }
+
+        const user = await UserModel.create({
+            username,
+            email,
+            password: hashed,
+            authProvider: 'local',
+            avatar: avatarUrl,
+        });
 
         return this.generateToken(user);
     }
