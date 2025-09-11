@@ -3,7 +3,11 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 export interface IPost extends Document {
   author: Types.ObjectId;
   content: string;
-  media?: string;
+  media?: {
+    url: string;
+    publicId: string;
+    resourceType: 'image' | 'video' | 'raw' | 'audio' | string; 
+  };
   likes: Types.ObjectId[];
   comments: Types.ObjectId[];
   sharedFrom?: Types.ObjectId;
@@ -11,11 +15,16 @@ export interface IPost extends Document {
   updatedAt: Date;
 }
 
+
 const PostSchema = new Schema<IPost>(
   {
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true },
-    media: { type: String },
+    media: {
+      url: { type: String },
+      publicId: { type: String },
+      resourceType: { type: String }, 
+    },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
     sharedFrom: { type: Schema.Types.ObjectId, ref: 'Post' },

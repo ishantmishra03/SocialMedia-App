@@ -20,10 +20,10 @@ class PostService {
             throw new Error('Invalid author ID');
         }
 
-        let mediaUrl: string | undefined;
+        let mediaObj: { url: string; publicId: string; resourceType: string } | undefined;
 
         if (mediaBuffer) {
-            mediaUrl = await new Promise<string>((resolve, reject) => {
+            const uploadResult = await new Promise<any>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
                     {
                         folder: 'posts',
@@ -31,17 +31,23 @@ class PostService {
                     },
                     (error, result) => {
                         if (error) return reject(error);
-                        resolve(result?.secure_url!);
+                        resolve(result);
                     }
                 );
                 streamifier.createReadStream(mediaBuffer).pipe(uploadStream);
             });
+
+            mediaObj = {
+                url: uploadResult.secure_url,
+                publicId: uploadResult.public_id,
+                resourceType: uploadResult.resource_type,
+            };
         }
 
         const post = await PostModel.create({
             author: new Types.ObjectId(authorId),
             content,
-            media: mediaUrl,
+            media: mediaObj,
         });
 
         await redisClient.del('allPosts');
@@ -49,7 +55,7 @@ class PostService {
         return post;
     }
 
-    // Get pst By Id
+    // Get post By Id
     async getPostById(postId: string): Promise<IPost | null> {
         if (!this.isValidObjectId(postId)) {
             throw new Error('Invalid post ID');
@@ -147,6 +153,10 @@ class PostService {
             throw new Error('You are not authorized to delete this post');
         }
 
+        if (post.media?.publicId && post.media?.resourceType) {
+            await cloudinary.uploader.destroy(post.media.publicId, { resource_type: post.media.resourceType });
+        }
+
         await post.deleteOne();
 
         await redisClient.del(`post:${postId}`);
@@ -154,6 +164,7 @@ class PostService {
 
         return { success: true };
     }
+
 }
 
 export default new PostService();
