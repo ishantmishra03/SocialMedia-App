@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google"; 
 import "./globals.css";
+import MuiRegistry from "@/theme/muiRegistry";
+import { ThemeContextProvider } from "@/theme/ThemeContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,10 +21,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="emotion-insertion-point" content="" />
+      </head>
       <body
         className={`${inter.variable} antialiased`}
       >
-        {children}
+        <MuiRegistry>
+         <ThemeContextProvider>
+            {children}
+         </ThemeContextProvider>
+        </MuiRegistry>
       </body>
     </html>
   );
