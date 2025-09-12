@@ -5,6 +5,7 @@ import upload from '../utils/multer';
 
 const authRouter = Router();
 
+authRouter.get('/', authVerify, AuthController.isAuth);
 authRouter.post('/register', upload.single('avatar'), AuthController.register);
 authRouter.post('/login', AuthController.login);
 authRouter.post('/login/google', AuthController.googleLogin);

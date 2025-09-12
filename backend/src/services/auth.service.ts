@@ -11,7 +11,7 @@ class AuthService {
         username: string,
         email: string,
         password: string,
-        avatarBuffer?: Buffer 
+        avatarBuffer?: Buffer
     ) {
         const existing = await UserModel.findOne({ $or: [{ email }, { username }] });
         if (existing) throw new Error('Email or username already in use');
@@ -54,8 +54,18 @@ class AuthService {
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) throw new Error('Invalid credentials');
 
-        return this.generateToken(user);
+        const token = this.generateToken(user);
+
+        return {
+            token,
+            user: {
+                _id: user._id,
+                username: user.username,
+                avatar: user.avatar,
+            },
+        };
     }
+
 
     // OAuth20 ( Google Login )
     async googleLogin({ email, username, googleId, avatar }: {
@@ -89,26 +99,25 @@ class AuthService {
             }
         }
 
-        return this.generateToken(user);
-    }
-
-
-    // Generates token for cookie
-    private generateToken(user: IUser) {
-        const payload = { id: user._id, username: user.username, role: user.role };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+        const token = this.generateToken(user);
 
         return {
             token,
             user: {
-                id: user._id,
+                _id: user._id,
                 username: user.username,
-                email: user.email,
                 avatar: user.avatar,
-                role: user.role,
             },
         };
     }
+
+
+    // Generates token for cookie
+    private generateToken(user: IUser): string {
+        const payload = { id: user._id, username: user.username, role: user.role };
+        return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+    }
+
 }
 
 export default new AuthService();

@@ -1,16 +1,21 @@
-'use client';
+"use client";
 
-import { Button, Typography, Container } from '@mui/material';
+import { useAppSelector } from "@/store/hooks/index";
+import Image from "next/image";
 
 export default function Home() {
+  const { user } = useAppSelector((state) => state.auth);
+
   return (
-    <Container maxWidth="sm">
-      <Typography variant="h4" gutterBottom>
-        Welcome to MUI + Next.js App Router!
-      </Typography>
-      <Button variant="contained" color="primary">
-        Click Me
-      </Button>
-    </Container>
+    <div>
+      <p>{user?.username}</p>
+      <Image
+        src={user?.avatar || "/banner.jpg"}
+        alt={user?.username || "User"}
+        width={40}
+        height={40}
+        className="rounded-full"
+      />
+    </div>
   );
 }
