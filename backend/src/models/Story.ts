@@ -15,7 +15,7 @@ const StorySchema = new Schema<IStory>(
     mediaUrl: { type: String, required: true },
     views: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-    expiresAt: { type: Date, required: true }, // 24 hours from creation
+    expiresAt: { type: Date, required: true }, 
   },
   { timestamps: true }
 );
