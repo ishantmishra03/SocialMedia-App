@@ -1,21 +1,14 @@
 "use client";
 
-import { useAppSelector } from "@/store/hooks/index";
-import Image from "next/image";
+import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "next/navigation";
+
 
 export default function Home() {
-  const { user } = useAppSelector((state) => state.auth);
+    const router = useRouter();
+    const {isAuthenticated} = useAppSelector((state) => state.auth);
 
-  return (
-    <div>
-      <p>{user?.username}</p>
-      <Image
-        src={user?.avatar || "/banner.jpg"}
-        alt={user?.username || "User"}
-        width={40}
-        height={40}
-        className="rounded-full"
-      />
-    </div>
-  );
+    if(isAuthenticated){
+        router.replace("/feed");
+    }
 }

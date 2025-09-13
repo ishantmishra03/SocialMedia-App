@@ -92,6 +92,10 @@ class PostService {
         const posts = await PostModel.find()
             .sort({ createdAt: -1 })
             .populate('author', 'username')
+            .populate({
+                path: 'comments',
+                populate: { path: 'author', select: 'username avatar' }
+            })
             .lean();
 
         await redisClient.set(cacheKey, JSON.stringify(posts), 'EX', 600);

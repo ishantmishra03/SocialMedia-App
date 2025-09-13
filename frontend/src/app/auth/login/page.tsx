@@ -58,7 +58,7 @@ export default function LoginPage() {
       if (data.success) {
         dispatch(setUser(data.user));
         toast.success("Login successful!");
-        router.push("/");
+        router.push("/feed");
       }
     } catch (error: any) {
       console.log(error);
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
       if (data.success) {
         toast.success("Google login successful!");
-        router.push("/");
+        router.push("/feed");
       } else {
         toast.error(data.error || "Google login failed");
       }
@@ -103,7 +103,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/"); 
+      router.replace("/feed"); 
     }
   }, [isAuthenticated, router]);
 
