@@ -3,6 +3,7 @@ import PostService from '../services/post.service';
 import { AuthRequest } from '../middlewares/authVerify';
 import { ZodError } from 'zod';
 import { postSchema } from '../schemas/post.schema';
+import NotificationService from '../services/notification.service';
 
 class PostController {
   // Create new post
@@ -50,8 +51,26 @@ class PostController {
     }
   }
 
+  // Get posts for logged-in user
+  async getPostsByUser(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId)
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+      const posts = await PostService.getPostsByUser(userId);
+
+      res.status(200).json({ success: true, posts });
+    } catch (error: any) {
+      res
+        .status(500)
+        .json({ success: false, message: error.message || 'Failed to fetch posts' });
+    }
+  }
+
   // Like a post
-  async likePost(req: AuthRequest, res: Response) {
+ async likePost(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
       const { postId } = req.params;
@@ -59,6 +78,21 @@ class PostController {
       if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
       const updatedPost = await PostService.likePost(postId, userId);
+
+      if (!updatedPost) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+      // Send notification
+      if (updatedPost.author.toString() !== userId) { 
+        await NotificationService.createNotification(
+          updatedPost.author.toString(), 
+          userId,                       
+          'like',                        
+          postId,                       
+          req.app.locals.io              
+        );
+      }
 
       res.status(200).json({ success: true, data: updatedPost });
     } catch (error: any) {

@@ -13,6 +13,13 @@ export interface AuthState {
 }
 
 // ================== POSTS ==================
+export interface PostState {
+  posts: IPost[];
+  selectedPost: IPost | null;
+  loading: boolean;
+  error: string | null;
+}
+
 export interface IComment {
   _id: string;
   author: User;      
@@ -39,4 +46,16 @@ export interface IPost {
   sharedFrom?: string; 
   createdAt: string;
   updatedAt: string;
+}
+
+
+// Profile Page
+export interface IUser{
+  username: string;
+  avatar: string;
+  bio: string;
+  followers: User[];
+  following: User[];
+  savedPosts: IPost[];
+  role: 'user' | 'admin';
 }

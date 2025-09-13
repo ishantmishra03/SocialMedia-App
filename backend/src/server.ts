@@ -1,19 +1,20 @@
 import express from 'express';
-import dotnev from 'dotenv';
+import dotenv from 'dotenv';
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import { connectDB } from './config/db';
 import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
 import postRouter from './routes/post.routes';
 import commentRouter from './routes/comment.routes';
+import { initializeNotificationSocket } from './sockets/notificationSocket'; 
 
-dotnev.config();
+dotenv.config();
 
 const app = express();
-
 connectDB();
-
 
 // CORS SETUP
 const whitelist: string[] = process.env.CORS_WHITELIST
@@ -42,6 +43,15 @@ app.use('/api/comments', commentRouter);
 
 app.get('/', (_, res) => res.send("Server Working..."));
 
+const server = http.createServer(app);
+const io = new SocketIOServer(server, {
+  cors: { origin: whitelist, credentials: true },
+});
+
+initializeNotificationSocket({ io });
+
+app.locals.io = io;
+
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => { console.log(`Server is running on ${PORT}`); })
+server.listen(PORT, () => { console.log(`Server is running on ${PORT}`); });

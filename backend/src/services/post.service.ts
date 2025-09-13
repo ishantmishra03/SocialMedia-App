@@ -169,6 +169,34 @@ class PostService {
         return { success: true };
     }
 
+
+    // Get posts by user
+    async getPostsByUser(userId: string): Promise<IPost[]> {
+        if (!this.isValidObjectId(userId)) {
+            throw new Error("Invalid user ID");
+        }
+
+        const cacheKey = `userPosts:${userId}`;
+        const cachedPosts = await redisClient.get(cacheKey);
+
+        if (cachedPosts) {
+            return JSON.parse(cachedPosts);
+        }
+
+        const posts = await PostModel.find({ author: userId })
+            .sort({ createdAt: -1 })
+            .populate("author", "username avatar")
+            .populate({
+                path: "comments",
+                populate: { path: "author", select: "username avatar" }
+            })
+            .lean();
+
+        await redisClient.set(cacheKey, JSON.stringify(posts), "EX", 600);
+
+        return posts;
+    }
+
 }
 
 export default new PostService();

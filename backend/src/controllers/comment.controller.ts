@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import CommentService from '../services/comment.service';
 import { AuthRequest } from '../middlewares/authVerify';
 import { ZodError } from 'zod';
+import NotificationService from '../services/notification.service';
 
 class CommentController {
   // Create new comment
@@ -16,6 +17,17 @@ class CommentController {
       }
 
       const comment = await CommentService.createComment(authorId, postId, content);
+
+       // Sends notification
+      if (comment.author.toString() !== authorId) { 
+        await NotificationService.createNotification(
+          comment.author.toString(), 
+          authorId,                      
+          'comment',                     
+          postId,                         
+          req.app.locals.io              
+        );
+      }
 
       res.status(201).json({ success: true, data: comment });
     } catch (err: any) {
@@ -50,6 +62,21 @@ class CommentController {
       }
 
       const updatedComment = await CommentService.likeComment(commentId, userId);
+
+      if (!updatedComment) {
+        return res.status(404).json({ success: false, message: 'Comment not found' });
+      }
+
+      // Notify comment owner
+      if (updatedComment.author.toString() !== userId) {
+        await NotificationService.createNotification(
+          updatedComment.author.toString(), 
+          userId,                          
+          'like',                           
+          updatedComment.post.toString(),   
+          req.app.locals.io                 
+        );
+      }
 
       res.status(200).json({ success: true, data: updatedComment });
     } catch (error: any) {
