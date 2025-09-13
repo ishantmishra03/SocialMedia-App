@@ -117,6 +117,7 @@ class PostService {
 
         if (!updatedPost) throw new Error('Post not found');
 
+        await redisClient.del(`userPosts:${updatedPost.author}`);
         await redisClient.del(`post:${postId}`);
         await redisClient.del('allPosts');
 
@@ -137,6 +138,7 @@ class PostService {
 
         if (!updatedPost) throw new Error('Post not found');
 
+        await redisClient.del(`userPosts:${updatedPost.author}`);
         await redisClient.del(`post:${postId}`);
         await redisClient.del('allPosts');
 

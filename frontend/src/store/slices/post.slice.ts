@@ -47,7 +47,23 @@ const postSlice = createSlice({
     setSelectedPost: (state, action: PayloadAction<IPost | null>) => {
       state.selectedPost = action.payload;
     },
-  },
+
+    updatePostLikes(
+      state,
+      action: PayloadAction<{ postId: string; likes: string[] }>
+    ) {
+      const { postId, likes } = action.payload;
+
+      const postIndex = state.posts.findIndex((p) => p._id === postId);
+      if (postIndex !== -1) {
+        state.posts[postIndex].likes = likes;
+      }
+
+      if (state.selectedPost?._id === postId) {
+        state.selectedPost.likes = likes;
+      }
+    },
+},
   extraReducers: (builder) => {
     // Fetch posts
     builder.addCase(fetchUserPosts.pending, (state) => {
@@ -78,5 +94,5 @@ const postSlice = createSlice({
   },
 });
 
-export const { clearPosts, setSelectedPost } = postSlice.actions;
+export const { clearPosts, setSelectedPost, updatePostLikes } = postSlice.actions;
 export default postSlice.reducer;

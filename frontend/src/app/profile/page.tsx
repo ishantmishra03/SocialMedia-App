@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -9,6 +9,7 @@ import ProfileModal from "@/components/profile/PostModal";
 import Image from "next/image";
 import { Grid, BookmarkIcon } from "lucide-react";
 import axios from "@/lib/axios";
+import { useColorMode } from "@/contexts/ThemeContext";
 
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
@@ -19,32 +20,34 @@ export default function ProfilePage() {
   const [savedPosts, setSavedPosts] = useState<IPost[]>([]);
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
 
+  const { isDarkMode } = useColorMode();
+
+  // Fetch user profile and posts
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
         const { data } = await axios.get(`/api/user/${loginUser?.username}`);
         setUser(data.user);
+        setSavedPosts(data.user.savedPosts || []);
       } catch (error) {
         console.error(error);
       }
     };
-
     fetchProfileData();
     dispatch(fetchUserPosts());
   }, [loginUser?.username, dispatch]);
 
+  // Open post modal
   const openPostModal = (post: IPost, index: number) => {
     dispatch(setSelectedPost(post));
     setCurrentPostIndex(index);
-    setIsLiked(post.likes?.includes(loginUser?._id || '') || false);
-    setIsSaved(user?.savedPosts?.includes(post._id) || false);
   };
 
+  // Close modal
   const closePostModal = () => dispatch(setSelectedPost(null));
 
+  // Navigate posts in modal
   const navigatePost = (direction: 'prev' | 'next') => {
     const currentPosts = activeTab === 'posts' ? posts : savedPosts;
     if (direction === 'prev' && currentPostIndex > 0) {
@@ -58,9 +61,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLike = () => setIsLiked(!isLiked);
-  const handleSave = () => setIsSaved(!isSaved);
-
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -71,7 +71,7 @@ export default function ProfilePage() {
   );
 
   if (!user) return (
-    <div className="flex justify-center items-center min-h-screen text-red-500">
+    <div className={`flex justify-center items-center min-h-screen ${isDarkMode ? 'text-gray-200' : 'text-red-500'}`}>
       Failed to load user profile.
     </div>
   );
@@ -79,23 +79,31 @@ export default function ProfilePage() {
   const currentPosts = activeTab === 'posts' ? posts : savedPosts;
 
   return (
-    <div className="w-full bg-white text-gray-900 min-h-screen">
+    <div className={`w-full min-h-screen ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'}`}>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         {/* Profile Info */}
-        <ProfileInfo user={user} postsCount={posts.length} isDarkMode={false} />
+        <ProfileInfo user={user} postsCount={posts.length} isDarkMode={isDarkMode} />
 
         {/* Tabs */}
-        <div className="border-t border-gray-200">
+        <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex justify-center gap-16">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`flex items-center gap-2 py-4 text-xs font-semibold uppercase tracking-wide border-t-2 transition-colors ${activeTab === 'posts' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+              className={`flex items-center gap-2 py-4 text-xs font-semibold uppercase tracking-wide border-t-2 transition-colors ${
+                activeTab === 'posts'
+                  ? `${isDarkMode ? 'border-gray-100 text-gray-100' : 'border-gray-900 text-gray-900'}`
+                  : `${isDarkMode ? 'border-transparent text-gray-400 hover:text-gray-200' : 'border-transparent text-gray-400 hover:text-gray-600'}`
+              }`}
             >
               <Grid className="w-3 h-3" /> Posts
             </button>
             <button
               onClick={() => setActiveTab('saved')}
-              className={`flex items-center gap-2 py-4 text-xs font-semibold uppercase tracking-wide border-t-2 transition-colors ${activeTab === 'saved' ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+              className={`flex items-center gap-2 py-4 text-xs font-semibold uppercase tracking-wide border-t-2 transition-colors ${
+                activeTab === 'saved'
+                  ? `${isDarkMode ? 'border-gray-100 text-gray-100' : 'border-gray-900 text-gray-900'}`
+                  : `${isDarkMode ? 'border-transparent text-gray-400 hover:text-gray-200' : 'border-transparent text-gray-400 hover:text-gray-600'}`
+              }`}
             >
               <BookmarkIcon className="w-3 h-3" /> Saved
             </button>
@@ -110,12 +118,12 @@ export default function ProfilePage() {
                 <div
                   key={post._id}
                   onClick={() => openPostModal(post, index)}
-                  className="relative aspect-square cursor-pointer group bg-gray-100"
+                  className={`relative aspect-square cursor-pointer group ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}
                 >
                   {post.media?.url ? (
                     <Image src={post.media.url} alt={post.content || "Post image"} fill className="object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-500">
+                    <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-300 text-gray-500'}`}>
                       No Media
                     </div>
                   )}
@@ -129,8 +137,8 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="text-center py-16">
-              <div className="w-16 h-16 mx-auto mb-4 border-2 rounded-full flex items-center justify-center border-gray-300">
-                {activeTab === 'posts' ? <Grid className="w-8 h-8 text-gray-400" /> : <BookmarkIcon className="w-8 h-8 text-gray-400" />}
+              <div className={`w-16 h-16 mx-auto mb-4 border-2 rounded-full flex items-center justify-center ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                {activeTab === 'posts' ? <Grid className={`w-8 h-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} /> : <BookmarkIcon className={`w-8 h-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />}
               </div>
               <h3 className="text-xl font-light mb-2">{activeTab === 'posts' ? 'No Posts Yet' : 'No Saved Posts'}</h3>
             </div>
@@ -141,12 +149,10 @@ export default function ProfilePage() {
         {selectedPost && (
           <ProfileModal
             post={selectedPost}
-            isLiked={isLiked}
-            isSaved={isSaved}
+            isSaved={user?.savedPosts?.includes(selectedPost._id) || false}
             closeModal={closePostModal}
             navigatePost={navigatePost}
-            handleLike={handleLike}
-            handleSave={handleSave}
+            handleSave={() => {}}
             currentIndex={currentPostIndex}
             totalPosts={currentPosts.length}
             formatDate={formatDate}

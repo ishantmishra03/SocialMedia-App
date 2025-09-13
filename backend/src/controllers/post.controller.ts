@@ -94,7 +94,7 @@ class PostController {
         );
       }
 
-      res.status(200).json({ success: true, data: updatedPost });
+      res.status(200).json({ success: true, data: updatedPost, message: 'Post liked' });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message || 'Failed to like post' });
     }
@@ -110,7 +110,7 @@ class PostController {
 
       const updatedPost = await PostService.unlikePost(postId, userId);
 
-      res.status(200).json({ success: true, data: updatedPost });
+      res.status(200).json({ success: true, data: updatedPost, message : 'Post Unliked' });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message || 'Failed to unlike post' });
     }
