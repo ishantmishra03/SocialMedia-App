@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useColorMode } from "@/contexts/ThemeContext";
 import { useNotificationMode } from "@/contexts/NotificationContext";
 import Link from "next/link";
@@ -22,6 +23,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/auth.slice";
 import { toast } from "react-toastify";
 import axios from "@/lib/axios";
+import CreatePost from "@/components/post/CreatePost";
 
 export default function Sidebar() {
   const dispatch = useAppDispatch();
@@ -29,6 +31,8 @@ export default function Sidebar() {
   const { toggleColorMode, isDarkMode } = useColorMode();
   const { unreadNotifications } = useNotificationMode();
   const pathname = usePathname();
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -46,7 +50,7 @@ export default function Sidebar() {
   const mainNavItems = [
     { icon: Home, label: "Home", href: "/feed", isActive: pathname === "/feed" },
     { icon: Search, label: "Explore", href: "/explore", isActive: pathname === "/explore" },
-    { icon: Plus, label: "Create", href: "/create", isActive: pathname === "/create" },
+    { icon: Plus, label: "Create", href: "#", onClick: () => setIsCreateOpen(true) },
     { icon: Heart, label: "Notification", href: "/notifications", isActive: pathname === "/notifications", showBadge: true },
     { icon: MessageCircle, label: "Messages", href: "/messages", isActive: pathname === "/messages" },
   ];
@@ -59,105 +63,113 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={`hidden lg:flex fixed left-0 top-0 h-full w-[245px] flex-col z-50 transition-all duration-300 border-r ${isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"}`}>
-      {/* Logo */}
-      <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-800">
-        <Link href="/feed" className="flex items-center space-x-3 group">
-          <div className={`relative w-8 h-8 rounded-lg overflow-hidden ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"} shadow-lg`}>
-            <div className="absolute inset-1 bg-white rounded-sm opacity-90"></div>
-            <div className={`absolute inset-2 rounded-sm ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"}`}></div>
-          </div>
-          <span className="text-2xl font-bold tracking-tight">SocialMedia</span>
-        </Link>
-      </div>
-
-      {/* Main Navigation */}
-      <nav className="flex-1 px-3 py-6 space-y-1">
-        {mainNavItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`group flex items-center px-3 py-3 rounded-lg transition-all duration-200 relative ${
-              item.isActive
-                ? isDarkMode
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-900 font-medium"
-                : isDarkMode
-                ? "text-gray-300 hover:bg-gray-900 hover:text-white"
-                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-          >
-            <item.icon
-              size={24}
-              className={`mr-4 transition-all duration-200 ${item.isActive ? "scale-105" : "group-hover:scale-105"}`}
-              strokeWidth={item.isActive ? 2.5 : 1.5}
-            />
-            <span className="text-base font-normal">{item.label}</span>
-
-            {/* Unread badge for notifications */}
-            {item.showBadge && unreadNotifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                {unreadNotifications}
-              </span>
-            )}
-
-            {item.isActive && (
-              <div className={`absolute right-2 w-1 h-6 rounded-full ${isDarkMode ? "bg-white" : "bg-gray-900"}`}></div>
-            )}
+    <>
+      <aside className={`hidden lg:flex fixed left-0 top-0 h-full w-[245px] flex-col z-50 transition-all duration-300 border-r ${isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"}`}>
+        {/* Logo */}
+        <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-800">
+          <Link href="/feed" className="flex items-center space-x-3 group">
+            <div className={`relative w-8 h-8 rounded-lg overflow-hidden ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"} shadow-lg`}>
+              <div className="absolute inset-1 bg-white rounded-sm opacity-90"></div>
+              <div className={`absolute inset-2 rounded-sm ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"}`}></div>
+            </div>
+            <span className="text-2xl font-bold tracking-tight">SocialMedia</span>
           </Link>
-        ))}
-      </nav>
+        </div>
 
-      {/* Secondary Navigation */}
-      <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800">
-        <div className="space-y-1">
-          {secondaryNavItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`group flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                item.isActive
-                  ? isDarkMode
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-900 font-medium"
-                  : isDarkMode
-                  ? "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+        {/* Main Navigation */}
+        <nav className="flex-1 px-3 py-6 space-y-1">
+          {mainNavItems.map((item) => (
+            item.href ? (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={item.onClick}
+                className={`group flex items-center px-3 py-3 rounded-lg transition-all duration-200 relative ${
+                  item.isActive
+                    ? isDarkMode
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-900 font-medium"
+                    : isDarkMode
+                    ? "text-gray-300 hover:bg-gray-900 hover:text-white"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+              >
+                <item.icon
+                  size={24}
+                  className={`mr-4 transition-all duration-200 ${item.isActive ? "scale-105" : "group-hover:scale-105"}`}
+                  strokeWidth={item.isActive ? 2.5 : 1.5}
+                />
+                <span className="text-base font-normal">{item.label}</span>
+
+                {/* Unread badge */}
+                {item.showBadge && unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                    {unreadNotifications}
+                  </span>
+                )}
+
+                {item.isActive && (
+                  <div className={`absolute right-2 w-1 h-6 rounded-full ${isDarkMode ? "bg-white" : "bg-gray-900"}`}></div>
+                )}
+              </Link>
+            ) : null
+          ))}
+        </nav>
+
+        {/* Secondary Navigation */}
+        <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800">
+          <div className="space-y-1">
+            {secondaryNavItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                  item.isActive
+                    ? isDarkMode
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-900 font-medium"
+                    : isDarkMode
+                    ? "text-gray-400 hover:bg-gray-900 hover:text-gray-200"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                }`}
+              >
+                <item.icon size={20} className="mr-4 transition-transform duration-200 group-hover:scale-105" strokeWidth={item.isActive ? 2 : 1.5} />
+                <span className="text-sm">{item.label}</span>
+              </Link>
+            ))}
+
+            <button
+              onClick={handleLogout}
+              className={`w-full group flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                isDarkMode
+                  ? "text-red-400 hover:bg-red-900/20 hover:text-red-300"
+                  : "text-red-600 hover:bg-red-50 hover:text-red-700"
               }`}
             >
-              <item.icon size={20} className="mr-4 transition-transform duration-200 group-hover:scale-105" strokeWidth={item.isActive ? 2 : 1.5} />
-              <span className="text-sm">{item.label}</span>
-            </Link>
-          ))}
+              <LogOut size={20} className="mr-4 transition-transform duration-200 group-hover:scale-105" />
+              <span className="text-sm">Logout</span>
+            </button>
+          </div>
+        </div>
 
+        {/* Theme Toggle */}
+        <div className="px-3 pb-6">
           <button
-            onClick={handleLogout}
-            className={`w-full group flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
+            onClick={toggleColorMode}
+            className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
               isDarkMode
-                ? "text-red-400 hover:bg-red-900/20 hover:text-red-300"
-                : "text-red-600 hover:bg-red-50 hover:text-red-700"
+                ? "bg-gray-900 hover:bg-gray-800 text-gray-300"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
             }`}
           >
-            <LogOut size={20} className="mr-4 transition-transform duration-200 group-hover:scale-105" />
-            <span className="text-sm">Logout</span>
+            {isDarkMode ? <Sun size={20} className="mr-4" /> : <Moon size={20} className="mr-4" />}
+            <span className="text-sm">{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Theme Toggle */}
-      <div className="px-3 pb-6">
-        <button
-          onClick={toggleColorMode}
-          className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
-            isDarkMode
-              ? "bg-gray-900 hover:bg-gray-800 text-gray-300"
-              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-          }`}
-        >
-          {isDarkMode ? <Sun size={20} className="mr-4" /> : <Moon size={20} className="mr-4" />}
-          <span className="text-sm">{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
-        </button>
-      </div>
-    </aside>
+      {/* CreatePost Popup */}
+      {isCreateOpen && <CreatePost onClose={() => setIsCreateOpen(false)} />}
+    </>
   );
 }

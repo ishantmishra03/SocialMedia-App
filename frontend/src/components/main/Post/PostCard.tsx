@@ -23,6 +23,7 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import axios from "@/lib/axios";
 import { toast } from "react-toastify";
 import { updatePostLikes } from "@/store/slices/post.slice";
+import Link from "next/link";
 
 interface PostCardProps {
   post: IPost;
@@ -166,9 +167,11 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
 
           <div className="flex flex-col min-w-0 flex-1">
-            <h3 className="font-semibold text-sm truncate">
+            <Link href={`/u/${post.author.username}`}>
+              <h3 className="font-semibold text-sm truncate">
               {post.author.username}
             </h3>
+            </Link>
             <div className="flex items-center space-x-1 text-xs">
               <Clock
                 size={12}
