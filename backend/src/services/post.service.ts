@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import PostModel from '../models/Post';
+import UserModel from '../models/User';
 import { IPost } from '../models/Post';
 import redisClient from '../utils/redisClient';
 import cloudinary from '../utils/cloudinary';
@@ -10,29 +11,17 @@ class PostService {
         return Types.ObjectId.isValid(id);
     }
 
-    // Create new post
     async createPost(authorId: string, content: string, mediaBuffer?: Buffer): Promise<IPost> {
-        if (!content || !authorId) {
-            throw new Error('Author and content are required');
-        }
-
-        if (!this.isValidObjectId(authorId)) {
-            throw new Error('Invalid author ID');
-        }
+        if (!content || !authorId) throw new Error('Author and content are required');
+        if (!this.isValidObjectId(authorId)) throw new Error('Invalid author ID');
 
         let mediaObj: { url: string; publicId: string; resourceType: string } | undefined;
 
         if (mediaBuffer) {
             const uploadResult = await new Promise<any>((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream(
-                    {
-                        folder: 'posts',
-                        resource_type: 'auto',
-                    },
-                    (error, result) => {
-                        if (error) return reject(error);
-                        resolve(result);
-                    }
+                    { folder: 'posts', resource_type: 'auto' },
+                    (error, result) => { if (error) return reject(error); resolve(result); }
                 );
                 streamifier.createReadStream(mediaBuffer).pipe(uploadStream);
             });
@@ -50,27 +39,21 @@ class PostService {
             media: mediaObj,
         });
 
-        await redisClient.del('allPosts');
+        await redisClient.del('allPosts', `userPosts:${authorId}`);
 
         return post;
     }
 
-    // Get post By Id
     async getPostById(postId: string): Promise<IPost | null> {
-        if (!this.isValidObjectId(postId)) {
-            throw new Error('Invalid post ID');
-        }
+        if (!this.isValidObjectId(postId)) throw new Error('Invalid post ID');
 
         const cacheKey = `post:${postId}`;
         const cachedPost = await redisClient.get(cacheKey);
-
-        if (cachedPost) {
-            return JSON.parse(cachedPost);
-        }
+        if (cachedPost) return JSON.parse(cachedPost);
 
         const post = await PostModel.findById(postId)
-            .populate('author', 'username')
-            .populate('comments')
+            .populate('author', 'username avatar')
+            .populate({ path: 'comments', populate: { path: 'author', select: 'username avatar' } })
             .lean();
 
         if (!post) throw new Error('Post not found');
@@ -80,22 +63,15 @@ class PostService {
         return post;
     }
 
-    // Get All Posts
     async getAllPosts(): Promise<IPost[]> {
         const cacheKey = 'allPosts';
         const cachedPosts = await redisClient.get(cacheKey);
-
-        if (cachedPosts) {
-            return JSON.parse(cachedPosts);
-        }
+        if (cachedPosts) return JSON.parse(cachedPosts);
 
         const posts = await PostModel.find()
             .sort({ createdAt: -1 })
-            .populate('author', 'username')
-            .populate({
-                path: 'comments',
-                populate: { path: 'author', select: 'username avatar' }
-            })
+            .populate('author', 'username avatar')
+            .populate({ path: 'comments', populate: { path: 'author', select: 'username avatar' } })
             .lean();
 
         await redisClient.set(cacheKey, JSON.stringify(posts), 'EX', 600);
@@ -103,11 +79,8 @@ class PostService {
         return posts;
     }
 
-    // Like Post
     async likePost(postId: string, userId: string): Promise<IPost | null> {
-        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) {
-            throw new Error('Invalid ID');
-        }
+        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) throw new Error('Invalid ID');
 
         const updatedPost = await PostModel.findByIdAndUpdate(
             postId,
@@ -117,18 +90,17 @@ class PostService {
 
         if (!updatedPost) throw new Error('Post not found');
 
-        await redisClient.del(`userPosts:${updatedPost.author}`);
-        await redisClient.del(`post:${postId}`);
-        await redisClient.del('allPosts');
+        await redisClient.del(
+            `post:${postId}`,
+            'allPosts',
+            `userPosts:${updatedPost.author}`
+        );
 
         return updatedPost;
     }
 
-    // Unlike post
     async unlikePost(postId: string, userId: string): Promise<IPost | null> {
-        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) {
-            throw new Error('Invalid ID');
-        }
+        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) throw new Error('Invalid ID');
 
         const updatedPost = await PostModel.findByIdAndUpdate(
             postId,
@@ -138,27 +110,21 @@ class PostService {
 
         if (!updatedPost) throw new Error('Post not found');
 
-        await redisClient.del(`userPosts:${updatedPost.author}`);
-        await redisClient.del(`post:${postId}`);
-        await redisClient.del('allPosts');
-
+        await redisClient.del(
+            `post:${postId}`,
+            'allPosts',
+            `userPosts:${updatedPost.author}`
+        );
 
         return updatedPost;
     }
 
-
-    // Delete Post
     async deletePost(postId: string, userId: string): Promise<{ success: boolean }> {
-        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) {
-            throw new Error('Invalid ID');
-        }
+        if (!this.isValidObjectId(postId) || !this.isValidObjectId(userId)) throw new Error('Invalid ID');
 
         const post = await PostModel.findById(postId);
         if (!post) throw new Error('Post not found');
-
-        if (post.author.toString() !== userId) {
-            throw new Error('You are not authorized to delete this post');
-        }
+        if (post.author.toString() !== userId) throw new Error('You are not authorized to delete this post');
 
         if (post.media?.publicId && post.media?.resourceType) {
             await cloudinary.uploader.destroy(post.media.publicId, { resource_type: post.media.resourceType });
@@ -166,38 +132,39 @@ class PostService {
 
         await post.deleteOne();
 
-        await redisClient.del(`post:${postId}`);
-        await redisClient.del('allPosts');
+        await redisClient.del(
+            `post:${postId}`,
+            'allPosts',
+            `userPosts:${userId}`
+        );
 
         return { success: true };
     }
 
-
-    // Get posts by user
     async getPostsByUser(userId: string): Promise<IPost[]> {
-        if (!this.isValidObjectId(userId)) {
-            throw new Error("Invalid user ID");
-        }
+        if (!this.isValidObjectId(userId)) throw new Error("Invalid user ID");
 
         const cacheKey = `userPosts:${userId}`;
         const cachedPosts = await redisClient.get(cacheKey);
-
-        if (cachedPosts) {
-            return JSON.parse(cachedPosts);
-        }
+        if (cachedPosts) return JSON.parse(cachedPosts);
 
         const posts = await PostModel.find({ author: userId })
             .sort({ createdAt: -1 })
             .populate("author", "username avatar")
-            .populate({
-                path: "comments",
-                populate: { path: "author", select: "username avatar" }
-            })
+            .populate({ path: "comments", populate: { path: "author", select: "username avatar" } })
             .lean();
 
         await redisClient.set(cacheKey, JSON.stringify(posts), "EX", 600);
 
         return posts;
+    }
+
+    async getPostsByUserName(username: string): Promise<IPost[]> {
+        const user = await UserModel.findOne({ username }).select('_id').lean();
+        if (!user) return [];
+
+        const userId = user._id.toString();
+        return this.getPostsByUser(userId);
     }
 
 }

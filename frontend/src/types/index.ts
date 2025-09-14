@@ -50,12 +50,15 @@ export interface IPost {
 
 
 // Profile Page
-export interface IUser{
+export interface IUser {
+  _id: string; 
   username: string;
-  avatar: string;
-  bio: string;
-  followers: User[];
-  following: User[];
+  avatar?: string;
+  bio?: string;
+  followersCount: number;  
+  followingCount: number; 
   savedPosts: IPost[];
   role: 'user' | 'admin';
+  isFollowing?: boolean;   
+  followBack?: boolean;   
 }

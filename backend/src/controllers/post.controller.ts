@@ -70,6 +70,25 @@ class PostController {
     }
   }
 
+  // Get posts for /u/username
+  async getPostsByUsername(req: Request, res: Response) {
+    try {
+      const { username } = req.params;
+
+      if (!username) {
+        return res.status(400).json({ success: false, message: "username is required" });
+      }
+
+      const posts = await PostService.getPostsByUserName(username);
+
+      res.status(200).json({ success: true, posts });
+    } catch (error: any) {
+      res
+        .status(500)
+        .json({ success: false, message: error.message || 'Failed to fetch posts' });
+    }
+  }
+
   // Like a post
   async likePost(req: AuthRequest, res: Response) {
     try {
@@ -118,7 +137,7 @@ class PostController {
       // Delete the previous like notification from DB
       const notif = await NotificationModel.findOneAndDelete({
         type: 'like',
-        user: updatedPost.author.toString(), 
+        user: updatedPost.author.toString(),
         from: userId,
         post: postId,
       });

@@ -1,90 +1,118 @@
-import UserModel, { IUser } from '../models/User';
-import { Types } from 'mongoose';
-import redisClient from '../utils/redisClient';
+import UserModel, { IUser } from "../models/User";
+import { Types } from "mongoose";
+import redisClient from "../utils/redisClient";
 
 class UserService {
-    // Get user profile by ID or username
-    async getUserProfile(identifier: string): Promise<IUser | null> {
-        const cacheKey = `userProfile:${identifier}`;
-
-        //Try redis cache first
-        const cached = await redisClient.get(cacheKey);
-        if(cached){
-            return JSON.parse(cached);
-        }
-
-        // NOT in cache then fetch from DB
-        const isObjectId = Types.ObjectId.isValid(identifier);
-
-        const user = isObjectId
-            ? await UserModel.findById(identifier).select('-password -email -authProvider').lean()
-            : await UserModel.findOne({ username: identifier }).select('-password -email -authProvider').lean();
-
-        if(user){
-            await redisClient.set(cacheKey, JSON.stringify(user), 'EX', 600);
-        }
-
-        return user;
+    // Helper: Invalidate Redis cache for user by username
+    private async invalidateUserCacheByUsername(user: IUser) {
+        if (!user?.username) return;
+        await redisClient.del(`userProfile:${user.username}`);
     }
 
-    // Update user profile (bio, avatar)
-    //   async updateUserProfile(userId: string, updates: Partial<IUser>): Promise<IUser | null> {
-    //     const allowedUpdates = ['avatar', 'bio', 'username']; 
-    //     const filteredUpdates: Partial<IUser> = {};
+    // Get user profile by username
+    async getUserProfile(username: string, currentUserId?: string): Promise<any | null> {
+        const cacheKey = `userProfile:${username}`;
+        const cached = await redisClient.get(cacheKey);
+        if (cached) return JSON.parse(cached);
 
-    //     Object.entries(updates).forEach(([key, value]) => {
-    //       if (allowedUpdates.includes(key)) filteredUpdates[key as keyof IUser] = value;
-    //     });
+        const userDoc = await UserModel.findOne({ username });
+        if (!userDoc) return null;
 
-    //     const updatedUser = await UserModel.findByIdAndUpdate(
-    //       userId,
-    //       { $set: filteredUpdates },
-    //       { new: true, runValidators: true }
-    //     ).select('-password');
+        const followersCount = userDoc.followers.length;
+        const followingCount = userDoc.following.length;
 
-    //     return updatedUser;
-    //   }
+        const isFollowing = currentUserId
+            ? userDoc.followers.some(f => f.equals(currentUserId))
+            : false;
+
+        const followBack = currentUserId
+            ? userDoc.following.some(f => f.equals(currentUserId)) && !isFollowing
+            : false;
+
+        const userProfile = {
+            _id: userDoc._id.toString(),
+            username: userDoc.username,
+            avatar: userDoc.avatar || "",
+            bio: userDoc.bio || "",
+            role: userDoc.role,
+            followersCount,
+            followingCount,
+            savedPosts: userDoc.savedPosts || [],
+            isFollowing,
+            followBack,
+        };
+
+        await redisClient.set(cacheKey, JSON.stringify(userProfile), 'EX', 600); // Cache for 10 min
+        return userProfile;
+    }
 
     // Follow user
-    async followUser(userId: string, targetUserId: string): Promise<void> {
-        if (userId === targetUserId) throw new Error("Cannot follow yourself");
+    async followUser(currentUserId: string, targetUserId: string) {
+        if (currentUserId === targetUserId) throw new Error("Cannot follow yourself");
 
-        const user = await UserModel.findById(userId);
+        const currentUser = await UserModel.findById(currentUserId);
         const targetUser = await UserModel.findById(targetUserId);
 
-        if (!user || !targetUser) throw new Error("User not found");
+        if (!currentUser || !targetUser) throw new Error("User not found");
 
-        if (user.following.includes(targetUser._id)) return;
+        if (!currentUser.following.includes(targetUser._id)) {
+            currentUser.following.push(targetUser._id);
+            targetUser.followers.push(currentUser._id);
 
-        user.following.push(targetUser._id);
-        targetUser.followers.push(user._id);
+            await currentUser.save();
+            await targetUser.save();
 
-        await user.save();
-        await targetUser.save();
+            // Invalidate cache by username
+            await this.invalidateUserCacheByUsername(currentUser);
+            await this.invalidateUserCacheByUsername(targetUser);
+        }
 
-        // Invalidate cache as user changes
-        await redisClient.del(`userProfile:${userId}`);
-        await redisClient.del(`userProfile:${targetUserId}`);
+        return {
+            followersCount: targetUser.followers.length,
+            isFollowing: true,
+            isFollowBack: targetUser.following.includes(currentUser._id),
+        };
     }
 
     // Unfollow user
-    async unfollowUser(userId: string, targetUserId: string): Promise<void> {
-        if (userId === targetUserId) throw new Error("Cannot unfollow yourself");
+    async unfollowUser(currentUserId: string, targetUserId: string) {
+        if (currentUserId === targetUserId) throw new Error("Cannot unfollow yourself");
 
-        const user = await UserModel.findById(userId);
+        const currentUser = await UserModel.findById(currentUserId);
         const targetUser = await UserModel.findById(targetUserId);
 
-        if (!user || !targetUser) throw new Error("User not found");
+        if (!currentUser || !targetUser) throw new Error("User not found");
 
-        user.following = user.following.filter(f => !f.equals(targetUser._id));
-        targetUser.followers = targetUser.followers.filter(f => !f.equals(user._id));
+        currentUser.following = currentUser.following.filter(f => !f.equals(targetUser._id));
+        targetUser.followers = targetUser.followers.filter(f => !f.equals(currentUser._id));
 
-        await user.save();
+        await currentUser.save();
         await targetUser.save();
 
-        // Invalidate cache as user changes
-        await redisClient.del(`userProfile:${userId}`);
-        await redisClient.del(`userProfile:${targetUserId}`);
+        // Invalidate cache by username
+        await this.invalidateUserCacheByUsername(currentUser);
+        await this.invalidateUserCacheByUsername(targetUser);
+
+        return {
+            followersCount: targetUser.followers.length,
+            isFollowing: false,
+            isFollowBack: false,
+        };
+    }
+
+    // Check follow status
+    async checkFollow(currentUserId: string, targetUserId: string) {
+        if (currentUserId === targetUserId) return { isFollowing: false, isFollowBack: false };
+
+        const currentUser = await UserModel.findById(currentUserId).select("following");
+        const targetUser = await UserModel.findById(targetUserId).select("following");
+
+        if (!currentUser || !targetUser) throw new Error("User not found");
+
+        const isFollowing = currentUser.following.some(id => id.equals(targetUserId));
+        const isFollowBack = targetUser.following.some(id => id.equals(currentUserId));
+
+        return { isFollowing, isFollowBack };
     }
 }
 

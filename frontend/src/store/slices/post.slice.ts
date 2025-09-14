@@ -28,6 +28,19 @@ export const fetchPostById = createAsyncThunk(
 );
 
 
+export const fetchPostsByUsername = createAsyncThunk(
+  "posts/fetchPostsByUsername",
+  async (username: string, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(`/api/posts/u/${username}`);
+      return data.posts as IPost[];
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch posts");
+    }
+  }
+);
+
+
 // Slice
 const initialState: PostState = {
   posts: [],
@@ -63,7 +76,7 @@ const postSlice = createSlice({
         state.selectedPost.likes = likes;
       }
     },
-},
+  },
   extraReducers: (builder) => {
     // Fetch posts
     builder.addCase(fetchUserPosts.pending, (state) => {
@@ -91,6 +104,21 @@ const postSlice = createSlice({
       state.loading = false;
       state.error = action.payload as string;
     });
+
+    //Fetch based on username
+    builder.addCase(fetchPostsByUsername.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchPostsByUsername.fulfilled, (state, action: PayloadAction<IPost[]>) => {
+      state.loading = false;
+      state.posts = action.payload;
+    });
+    builder.addCase(fetchPostsByUsername.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
   },
 });
 

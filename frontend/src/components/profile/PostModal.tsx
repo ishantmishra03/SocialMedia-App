@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
 import Image from "next/image";
 import { IPost } from "@/types";
 import { X, ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 import { useColorMode } from "@/contexts/ThemeContext";
 import axios from "@/lib/axios";
-import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchUserPosts, updatePostLikes } from "@/store/slices/post.slice";
+import { updatePostLikes } from "@/store/slices/post.slice";
 
 interface PostModalProps {
   post: IPost;
@@ -35,7 +34,6 @@ export default function PostModal({
   const { posts } = useAppSelector(state => state.post);
   const { isDarkMode } = useColorMode();
 
-  // Always get the latest post from Redux
   const postFromStore = posts.find(p => p._id === post._id) || post;
   const likesCount = postFromStore.likes?.length || 0;
   const liked = postFromStore.likes?.includes(user?._id || '') || false;
@@ -45,7 +43,6 @@ export default function PostModal({
       const endpoint = liked ? `/api/posts/${post._id}/unlike` : `/api/posts/${post._id}/like`;
       const { data } = await axios.post(endpoint);
       if (data.success) {
-        console.log(data);
         dispatch(updatePostLikes({ postId: post._id, likes: data.data.likes }));
       }
     } catch (error: any) {
@@ -58,16 +55,28 @@ export default function PostModal({
       <div className={`w-full max-w-6xl h-full max-h-screen flex relative ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'}`}>
 
         {/* Media Section */}
-        <div className="flex-1 flex items-center justify-center bg-black">
+        <div className="flex-1 flex items-center justify-center bg-black select-none pointer-events-none">
           {postFromStore.media?.url ? (
             postFromStore.media.resourceType === 'video' ? (
-              <video controls className="w-full h-full object-contain">
+              <video
+                controls
+                className="w-full h-full object-contain"
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+              >
                 <source src={postFromStore.media.url} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
             ) : (
               <div className="relative w-full h-full flex items-center justify-center">
-                <Image src={postFromStore.media.url} alt={postFromStore.content || "Post image"} fill className="object-contain" />
+                <Image
+                  src={postFromStore.media.url}
+                  alt={postFromStore.content || "Post image"}
+                  fill
+                  className="object-contain select-none pointer-events-none"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
               </div>
             )
           ) : (
@@ -84,7 +93,14 @@ export default function PostModal({
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full overflow-hidden relative">
                 {postFromStore.author.avatar ? (
-                  <Image src={postFromStore.author.avatar} alt={postFromStore.author.username} fill className="object-cover" />
+                  <Image
+                    src={postFromStore.author.avatar}
+                    alt={postFromStore.author.username}
+                    fill
+                    className="object-cover select-none pointer-events-none"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">
                     {postFromStore.author.username.charAt(0).toUpperCase()}
@@ -106,7 +122,14 @@ export default function PostModal({
             <div className="flex gap-3 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden relative flex-shrink-0">
                 {postFromStore.author.avatar ? (
-                  <Image src={postFromStore.author.avatar} alt={postFromStore.author.username} fill className="object-cover" />
+                  <Image
+                    src={postFromStore.author.avatar}
+                    alt={postFromStore.author.username}
+                    fill
+                    className="object-cover select-none pointer-events-none"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white">
                     {postFromStore.author.username.charAt(0).toUpperCase()}

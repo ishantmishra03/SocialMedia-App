@@ -41,6 +41,7 @@ export const useNotifications = (userId?: string) => {
     return () => {
       socket.emit("leave", userId);
       socket.off("new_notification");
+      socket.off("remove_notification");
     };
   }, [userId]);
 
