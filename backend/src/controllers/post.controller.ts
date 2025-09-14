@@ -4,6 +4,7 @@ import { AuthRequest } from '../middlewares/authVerify';
 import { ZodError } from 'zod';
 import { postSchema } from '../schemas/post.schema';
 import NotificationService from '../services/notification.service';
+import NotificationModel from '../models/Notification';
 
 class PostController {
   // Create new post
@@ -70,7 +71,7 @@ class PostController {
   }
 
   // Like a post
- async likePost(req: AuthRequest, res: Response) {
+  async likePost(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
       const { postId } = req.params;
@@ -80,17 +81,17 @@ class PostController {
       const updatedPost = await PostService.likePost(postId, userId);
 
       if (!updatedPost) {
-      return res.status(404).json({ success: false, message: 'Post not found' });
-    }
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
 
       // Send notification
-      if (updatedPost.author.toString() !== userId) { 
+      if (updatedPost.author.toString() !== userId) {
         await NotificationService.createNotification(
-          updatedPost.author.toString(), 
-          userId,                       
-          'like',                        
-          postId,                       
-          req.app.locals.io              
+          updatedPost.author.toString(),
+          userId,
+          'like',
+          postId,
+          req.app.locals.io
         );
       }
 
@@ -110,7 +111,25 @@ class PostController {
 
       const updatedPost = await PostService.unlikePost(postId, userId);
 
-      res.status(200).json({ success: true, data: updatedPost, message : 'Post Unliked' });
+      if (!updatedPost) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+
+      // Delete the previous like notification from DB
+      const notif = await NotificationModel.findOneAndDelete({
+        type: 'like',
+        user: updatedPost.author.toString(), 
+        from: userId,
+        post: postId,
+      });
+
+      // event to remove it from the frontend
+      if (notif) {
+        const io = req.app.locals.io;
+        io.to(updatedPost.author.toString()).emit('remove_notification', notif._id);
+      }
+
+      res.status(200).json({ success: true, data: updatedPost, message: 'Post Unliked' });
     } catch (error: any) {
       res.status(400).json({ success: false, message: error.message || 'Failed to unlike post' });
     }

@@ -134,7 +134,7 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="relative flex-shrink-0">
             <div className={`w-11 h-11 rounded-full overflow-hidden border-2 transition-all duration-200 ${isDarkMode ? "border-gray-700 group-hover:border-gray-600" : "border-gray-200 group-hover:border-gray-300"}`}>
               <Image
-                src={user.avatar || "/profile.webp"}
+                src={user?.avatar || "/profile.webp"}
                 alt={`${post.author.username}'s avatar`}
                 width={44}
                 height={44}

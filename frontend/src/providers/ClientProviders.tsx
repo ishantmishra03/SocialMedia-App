@@ -6,16 +6,21 @@ import { Provider } from "react-redux";
 import { store } from "@/store/store";
 import ToastProvider from "@/providers/ToastProvider";
 import AuthProvider from "./AuthProvider";
+import { NotificationContextProvider } from "@/contexts/NotificationContext";
 
-export default function ClientProviders({ children }: { children: React.ReactNode }) {
+export default function ClientProviders({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <Provider store={store}>
       <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
         <ThemeContextProvider>
           <ToastProvider />
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+          <NotificationContextProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </NotificationContextProvider>
         </ThemeContextProvider>
       </GoogleOAuthProvider>
     </Provider>

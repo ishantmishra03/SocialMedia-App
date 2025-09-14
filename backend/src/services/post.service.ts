@@ -142,6 +142,7 @@ class PostService {
         await redisClient.del(`post:${postId}`);
         await redisClient.del('allPosts');
 
+
         return updatedPost;
     }
 

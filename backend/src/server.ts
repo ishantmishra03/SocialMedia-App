@@ -9,6 +9,7 @@ import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
 import postRouter from './routes/post.routes';
 import commentRouter from './routes/comment.routes';
+import notificationRouter from './routes/notification.routes';
 import { initializeNotificationSocket } from './sockets/notificationSocket'; 
 
 dotenv.config();
@@ -40,12 +41,14 @@ app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/posts', postRouter);
 app.use('/api/comments', commentRouter);
+app.use('/api/notifications', notificationRouter);
 
 app.get('/', (_, res) => res.send("Server Working..."));
 
 const server = http.createServer(app);
+
 const io = new SocketIOServer(server, {
-  cors: { origin: whitelist, credentials: true },
+  cors: { origin: "*", credentials: true },
 });
 
 initializeNotificationSocket({ io });

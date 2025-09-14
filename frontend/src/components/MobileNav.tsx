@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useColorMode } from "@/contexts/ThemeContext";
+import { useNotificationMode } from "@/contexts/NotificationContext";
 import { usePathname } from "next/navigation";
 import {
   Moon,
@@ -16,48 +17,23 @@ import {
 
 export default function MobileNav() {
   const { toggleColorMode, isDarkMode } = useColorMode();
+  const { unreadNotifications } = useNotificationMode();
   const pathname = usePathname();
 
   const mainNavItems = [
-    {
-      icon: Home,
-      label: "Home",
-      href: "/feed",
-      isActive: pathname === "/feed",
-    },
-    {
-      icon: Search,
-      label: "Explore",
-      href: "/explore",
-      isActive: pathname === "/explore",
-    },
-    {
-      icon: Plus,
-      label: "Create",
-      href: "/create",
-      isActive: pathname === "/create",
-    },
-    {
-      icon: Heart,
-      label: "Activity",
-      href: "/feed",
-      isActive: pathname === "/activity",
-    },
-    {
-      icon: MessageCircle,
-      label: "Messages",
-      href: "/feed",
-      isActive: pathname === "/messages",
-    },
+    { icon: Home, label: "Home", href: "/feed", isActive: pathname === "/feed" },
+    { icon: Search, label: "Explore", href: "/explore", isActive: pathname === "/explore" },
+    { icon: Plus, label: "Create", href: "/create", isActive: pathname === "/create" },
+    { icon: Heart, label: "Notification", href: "/notifications", isActive: pathname === "/notifications", showBadge: true },
+    { icon: MessageCircle, label: "Messages", href: "/messages", isActive: pathname === "/messages" },
   ];
+
   return (
     <div>
       {/* Mobile Header */}
       <header
         className={`lg:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-4 backdrop-blur-xl border-b ${
-          isDarkMode
-            ? "bg-black/80 border-gray-800"
-            : "bg-white/80 border-gray-200"
+          isDarkMode ? "bg-black/80 border-gray-800" : "bg-white/80 border-gray-200"
         }`}
       >
         <Link href="/feed" className="flex items-center space-x-2">
@@ -76,28 +52,24 @@ export default function MobileNav() {
         <button
           onClick={toggleColorMode}
           className={`p-2 rounded-full transition-all duration-200 ${
-            isDarkMode
-              ? "bg-gray-900 hover:bg-gray-800 text-gray-300"
-              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            isDarkMode ? "bg-gray-900 hover:bg-gray-800 text-gray-300" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
           }`}
         >
           {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </header>
 
-      {/* Mobile NAV  */}
+      {/* Mobile NAV */}
       <nav
         className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 flex items-center justify-around backdrop-blur-xl border-t ${
-          isDarkMode
-            ? "bg-black/90 border-gray-800"
-            : "bg-white/90 border-gray-200"
+          isDarkMode ? "bg-black/90 border-gray-800" : "bg-white/90 border-gray-200"
         }`}
       >
         {mainNavItems.slice(0, 4).map((item) => (
           <Link
             key={item.label}
             href={item.href}
-            className={`flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${
+            className={`flex items-center justify-center w-12 h-12 rounded-xl relative transition-all duration-200 ${
               item.isActive
                 ? isDarkMode
                   ? "bg-white text-black"
@@ -110,10 +82,15 @@ export default function MobileNav() {
             <item.icon
               size={24}
               strokeWidth={item.isActive ? 2.5 : 1.5}
-              fill={
-                item.isActive && item.icon === Home ? "currentColor" : "none"
-              }
+              fill={item.isActive && item.icon === Home ? "currentColor" : "none"}
             />
+
+            {/* Unread badge for notifications */}
+            {item.showBadge && unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {unreadNotifications}
+              </span>
+            )}
           </Link>
         ))}
 

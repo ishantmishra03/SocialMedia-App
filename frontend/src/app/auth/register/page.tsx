@@ -84,7 +84,7 @@ export default function RegisterPage() {
       });
 
       if (data.success) {
-        toast.success("Registration successful!");
+        toast.info("Registration successful!");
         router.push("/auth/login");
       }
     } catch (error: any) {
@@ -107,7 +107,7 @@ export default function RegisterPage() {
       });
 
       if (data.success) {
-        toast.success("Google login successful!");
+        toast.info("Login successful!");
         router.push("/");
       } else {
         toast.error(data.error || "Google login failed");

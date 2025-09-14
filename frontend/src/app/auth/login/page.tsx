@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       if (data.success) {
         dispatch(setUser(data.user));
-        toast.success("Login successful!");
+        toast.info("Login successful!");
         router.push("/feed");
       }
     } catch (error: any) {
@@ -83,7 +83,7 @@ export default function LoginPage() {
       });
 
       if (data.success) {
-        toast.success("Google login successful!");
+        toast.info("Login successful!");
         router.push("/feed");
       } else {
         toast.error(data.error || "Google login failed");

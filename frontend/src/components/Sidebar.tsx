@@ -1,6 +1,7 @@
 "use client";
 
 import { useColorMode } from "@/contexts/ThemeContext";
+import { useNotificationMode } from "@/contexts/NotificationContext";
 import Link from "next/link";
 import {
   Home,
@@ -26,6 +27,7 @@ export default function Sidebar() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { toggleColorMode, isDarkMode } = useColorMode();
+  const { unreadNotifications } = useNotificationMode();
   const pathname = usePathname();
 
   const handleLogout = async () => {
@@ -33,7 +35,7 @@ export default function Sidebar() {
       const { data } = await axios.post("/api/auth/logout");
       if (data.success) {
         dispatch(logout());
-        toast.success(data.message);
+        toast.info(data.message);
         router.replace("/auth/login");
       }
     } catch (error: any) {
@@ -45,31 +47,25 @@ export default function Sidebar() {
     { icon: Home, label: "Home", href: "/feed", isActive: pathname === "/feed" },
     { icon: Search, label: "Explore", href: "/explore", isActive: pathname === "/explore" },
     { icon: Plus, label: "Create", href: "/create", isActive: pathname === "/create" },
-    { icon: Heart, label: "Activity", href: "/feed", isActive: pathname === "/activity" },
-    { icon: MessageCircle, label: "Messages", href: "/feed", isActive: pathname === "/messages" },
+    { icon: Heart, label: "Notification", href: "/notifications", isActive: pathname === "/notifications", showBadge: true },
+    { icon: MessageCircle, label: "Messages", href: "/messages", isActive: pathname === "/messages" },
   ];
 
   const secondaryNavItems = [
     { icon: User, label: "Profile", href: "/profile", isActive: pathname === "/profile" },
-    { icon: Bookmark, label: "Saved", href: "/feed", isActive: pathname === "/saved" },
-    { icon: TrendingUp, label: "Analytics", href: "/feed", isActive: pathname === "/analytics" },
-    { icon: Settings, label: "Settings", href: "/feed", isActive: pathname === "/settings" },
+    { icon: Bookmark, label: "Saved", href: "/saved", isActive: pathname === "/saved" },
+    { icon: TrendingUp, label: "Analytics", href: "/analytics", isActive: pathname === "/analytics" },
+    { icon: Settings, label: "Settings", href: "/settings", isActive: pathname === "/settings" },
   ];
 
   return (
-    <aside className={`hidden lg:flex fixed left-0 top-0 h-full w-[245px] flex-col z-50 transition-all duration-300 border-r ${
-      isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"
-    }`}>
+    <aside className={`hidden lg:flex fixed left-0 top-0 h-full w-[245px] flex-col z-50 transition-all duration-300 border-r ${isDarkMode ? "bg-black border-gray-800" : "bg-white border-gray-200"}`}>
       {/* Logo */}
       <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-800">
         <Link href="/feed" className="flex items-center space-x-3 group">
-          <div className={`relative w-8 h-8 rounded-lg overflow-hidden ${
-            isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"
-          } shadow-lg`}>
+          <div className={`relative w-8 h-8 rounded-lg overflow-hidden ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"} shadow-lg`}>
             <div className="absolute inset-1 bg-white rounded-sm opacity-90"></div>
-            <div className={`absolute inset-2 rounded-sm ${
-              isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"
-            }`}></div>
+            <div className={`absolute inset-2 rounded-sm ${isDarkMode ? "bg-gradient-to-br from-purple-600 to-blue-600" : "bg-gradient-to-br from-purple-500 to-blue-500"}`}></div>
           </div>
           <span className="text-2xl font-bold tracking-tight">SocialMedia</span>
         </Link>
@@ -93,12 +89,18 @@ export default function Sidebar() {
           >
             <item.icon
               size={24}
-              className={`mr-4 transition-all duration-200 ${
-                item.isActive ? "scale-105" : "group-hover:scale-105"
-              }`}
+              className={`mr-4 transition-all duration-200 ${item.isActive ? "scale-105" : "group-hover:scale-105"}`}
               strokeWidth={item.isActive ? 2.5 : 1.5}
             />
             <span className="text-base font-normal">{item.label}</span>
+
+            {/* Unread badge for notifications */}
+            {item.showBadge && unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {unreadNotifications}
+              </span>
+            )}
+
             {item.isActive && (
               <div className={`absolute right-2 w-1 h-6 rounded-full ${isDarkMode ? "bg-white" : "bg-gray-900"}`}></div>
             )}
@@ -123,11 +125,7 @@ export default function Sidebar() {
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
               }`}
             >
-              <item.icon
-                size={20}
-                className="mr-4 transition-transform duration-200 group-hover:scale-105"
-                strokeWidth={item.isActive ? 2 : 1.5}
-              />
+              <item.icon size={20} className="mr-4 transition-transform duration-200 group-hover:scale-105" strokeWidth={item.isActive ? 2 : 1.5} />
               <span className="text-sm">{item.label}</span>
             </Link>
           ))}

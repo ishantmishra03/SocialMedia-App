@@ -17,10 +17,6 @@ class NotificationService {
       throw new Error('User, From, and Type are required');
     }
 
-    if (!this.isValidObjectId(userId) || !this.isValidObjectId(fromId)) {
-      throw new Error('Invalid user or from ID');
-    }
-
     if (postId && !this.isValidObjectId(postId)) {
       throw new Error('Invalid post ID');
     }
@@ -33,14 +29,20 @@ class NotificationService {
       isRead: false,
     });
 
+    const populated = await notification.populate([
+      { path: "from", select: "username avatar" },
+      { path: "post", select: "content media" },
+    ]);
+
+
     if (io) {
-      io.to(userId).emit('new_notification', notification);
+      io.to(userId).emit('new_notification', populated);
     }
 
-    return notification;
+    return populated;
   }
 
-  
+
   async getUserNotifications(userId: string): Promise<INotification[]> {
     if (!this.isValidObjectId(userId)) {
       throw new Error('Invalid user ID');
@@ -67,7 +69,7 @@ class NotificationService {
     );
   }
 
-  
+
   async markAllNotificationsAsRead(userId: string): Promise<{ modifiedCount: number }> {
     if (!this.isValidObjectId(userId)) {
       throw new Error('Invalid user ID');
